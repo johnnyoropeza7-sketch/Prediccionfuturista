@@ -49,6 +49,11 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 #vb{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);display:flex;justify-content:space-between}
 #vb .mid{gap:26px;padding:0 24px}
 #hb.f svg{stroke:#ff375f;fill:#ff375f}
+#ok{position:absolute;left:calc(100% + 10px);top:50%;margin-top:-6px;width:12px;height:12px;border-radius:50%;background:#30d158;box-shadow:0 0 8px #30d158}
+#kw{position:fixed;inset:0;z-index:10;background:#000a;display:flex;align-items:center;justify-content:center;padding:24px}
+#kw .card{background:#1c1c1e;border-radius:18px;padding:18px;display:grid;gap:12px;width:100%;max-width:380px}
+#kw label{display:grid;gap:6px;font-size:14px}
+#kw .r2{display:flex;gap:8px;justify-content:flex-end}
 #sh{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);background:#1c1c1e;border-radius:16px;z-index:9;overflow:hidden}
 #sh button{display:block;width:100%;padding:16px;border-bottom:1px solid #333;font-size:18px}
 #ed{position:fixed;left:0;right:0;bottom:0;z-index:8;background:#111e;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:14px 14px calc(env(safe-area-inset-bottom) + 14px);display:grid;gap:10px;font-size:14px}
@@ -83,17 +88,23 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 
 <div id="vw" class="scr">
 <div id="st"><div id="w"><video id="v" playsinline></video><div id="ov" hidden></div></div><img id="im" hidden></div>
-<div id="vtop"><button class="pill circ" id="vbk">‹</button><div class="pill" id="vt"></div><button class="pill circ" id="vmn">•••</button></div>
+<div id="vtop"><button class="pill circ" id="vbk">‹</button><div id="vtw" style="position:relative"><div class="pill" id="vt"></div><i id="ok" hidden></i></div><button class="pill circ" id="vmn">•••</button></div>
 <div id="cb" class="pill"><button id="pp">❚❚</button><div id="pt"><div id="pf"></div></div><span>🔊</span></div>
 <div id="vb"><button class="pill circ" id="b1"></button><div class="pill mid"><button id="hb"></button><button id="b2"></button><button id="b3"></button></div><button class="pill circ" id="b4"></button></div>
 </div>
 
+<div id="kw" hidden><div class="card"><b style="font-size:18px">Palabras clave</b>
+<label>Palabra de inicio<input id="ka" autocapitalize="none"></label>
+<label>Palabra de cierre<input id="kb" autocapitalize="none"></label>
+<small id="kp" style="opacity:.6"></small>
+<div class="r2"><button class="btn" id="kx">Cancelar</button><button class="btn big" id="kg">Guardar</button></div></div></div>
 <div id="sh" hidden></div>
 <div id="ed" hidden>
 <select id="ef"><option>Caveat<option>Permanent Marker<option>Reenie Beanie<option>Kalam<option>Shadows Into Light</select>
 <div class="r" id="ec"></div><div class="r" id="et"></div>
 <label>Tamaño <input type="range" id="es" min="3" max="40"></label>
 <label>Inclinación <input type="range" id="er" min="-20" max="20"></label>
+<label>Perspectiva <input type="range" id="ep" min="-60" max="60"></label>
 <div class="r"><button class="btn" id="em"></button><button class="btn" id="ex">Cancelar</button><button class="btn big" id="eg">Guardar</button></div>
 </div>
 <input type="file" id="fi" multiple accept="image/*,video/*" hidden>
@@ -213,7 +224,7 @@ async function openGallery(){
   if($('#gl').classList.contains('on'))c.innerHTML=cell(it,t.b,t.d);
  }
 }
-$('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Cerrar sesión',out]]);
+$('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Palabras clave',kwOpen],['Cerrar sesión',out]]);
 $('#fi').onchange=async e=>{
  const fs=[...e.target.files],h=$('#gh h1');
  for(let i=0;i<fs.length;i++){
@@ -227,10 +238,10 @@ $('#fi').onchange=async e=>{
 /* ---------- Visor ---------- */
 const V=$('#v'),O=$('#ov');
 let cur,word='',rec,live=false,editing=false,dr;
-const T={marcador:[1,.92,'.02em',0],rotulador:[.9,.96,'.008em',0],lapiz:[.78,.7,'0em',.35]};
+const T={marcador:[1,.92,'.02em',0],rotulador:[.9,.96,'.008em',0],lapiz:[.78,.7,'0em',.35],tiza:[.95,.85,'.01em',.5],spray:[1.05,.88,'.03em',.6]};
 function sty(el,c,t){
  const k=T[c.tool];el.textContent=t;
- Object.assign(el.style,{left:c.x+'%',top:c.y+'%',fontFamily:`"${c.font}",cursive`,color:c.color,fontSize:c.size*k[0]+'cqw',opacity:k[1],webkitTextStroke:k[2]+' '+c.color,filter:k[3]?`blur(${k[3]}px)`:'none',transform:`translate(-50%,-50%) rotate(${c.tilt}deg)`});
+ Object.assign(el.style,{left:c.x+'%',top:c.y+'%',fontFamily:`"${c.font}",cursive`,color:c.color,fontSize:c.size*k[0]+'cqw',opacity:k[1],webkitTextStroke:k[2]+' '+c.color,filter:k[3]?`blur(${k[3]}px)`:'none',transform:`translate(-50%,-50%) perspective(700px) rotateY(${c.p||0}deg) rotate(${c.tilt}deg)`});
 }
 function fit(){
  const s=$('#st'),w=$('#w'),vw=V.videoWidth,vh=V.videoHeight;if(!vw)return;
@@ -249,7 +260,7 @@ $('#pp').onclick=toggle;
 $('#pt').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();V.currentTime=(e.clientX-r.left)/r.width*V.duration};
 
 function openViewer(it,u){
- cur=it;word='';O.hidden=true;show('vw');
+ cur=it;word='';O.hidden=true;$('#ok').hidden=true;show('vw');
  const d=new Date(it.date),vid=it.type=='v';
  $('#vt').innerHTML=`${cap(d.toLocaleDateString('es',{weekday:'long'}))}<small>${d.toLocaleTimeString('es',{hour:'numeric',minute:'2-digit'})}</small>`;
  V.hidden=!vid;$('#w').hidden=!vid;$('#im').hidden=vid;$('#cb').hidden=!vid;live=vid;
@@ -258,9 +269,21 @@ function openViewer(it,u){
 function back(){live=false;V.pause();V.removeAttribute('src');rec&&rec.stop();if(editing)closeEd();openGallery()}
 $('#vbk').onclick=back;
 $('#b4').onclick=async()=>{if(confirm('¿Eliminar?')){await del(cur.id);back()}};
-$('#vmn').onclick=()=>{if(cur.type=='v')sheet([['Ajustar predicción',edit],['Escribir palabra',typed],['Borrar palabra',()=>{word='';O.hidden=true}]])};
-function setWord(s){word=cap(s);if(cur.cfg)sty(O,cur.cfg,word)}
+$('#vmn').onclick=()=>{if(cur.type=='v')sheet([['Ajustar predicción',edit],['Escribir palabra',typed],['Palabras clave',kwOpen],['Borrar palabra',()=>{word='';O.hidden=true;$('#ok').hidden=true}]])};
+function setWord(s){if(editing)return;word=cap(s);if(cur.cfg){sty(O,cur.cfg,word);$('#ok').hidden=false}}
 function typed(){const s=prompt('Palabra');if(s)setWord(s)}
+
+/* ---------- Palabras clave ---------- */
+const KW=()=>({a:localStorage.kwa||'pensaste',b:localStorage.kwb||'cierto'});
+function rx(){
+ const k=KW(),f=t=>t.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+ return new RegExp(f(k.a)+'\\s+(?:en\\s+)?(.+?)\\s+'+f(k.b),'gi');
+}
+function kwPrev(){$('#kp').textContent='Ejemplo: "'+$('#ka').value.trim()+' barco '+$('#kb').value.trim()+'"'}
+function kwOpen(){const k=KW();$('#ka').value=k.a;$('#kb').value=k.b;kwPrev();$('#kw').hidden=false}
+$('#ka').oninput=$('#kb').oninput=kwPrev;
+$('#kx').onclick=()=>{$('#kw').hidden=true};
+$('#kg').onclick=()=>{const a=$('#ka').value.trim(),b=$('#kb').value.trim();if(a&&b){localStorage.kwa=a;localStorage.kwb=b}$('#kw').hidden=true};
 
 /* ---------- Voz: "pensaste ... cierto" ---------- */
 function listen(){
@@ -268,7 +291,7 @@ function listen(){
  rec&&rec.stop();rec=new R();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
  rec.onresult=e=>{
   let s='';for(let i=0;i<e.results.length;i++)s+=e.results[i][0].transcript+' ';
-  const m=[...s.matchAll(/pensaste\s+(?:en\s+)?(.+?)\s+cierto/gi)];
+  const m=[...s.matchAll(rx())];
   if(m.length)setWord(m[m.length-1][1]);
  };
  rec.onend=()=>{if(live)try{rec.start()}catch(e){}};
@@ -276,18 +299,19 @@ function listen(){
 }
 
 /* ---------- Editor de la pizarra ---------- */
-const COL=['#1a1a1a','#1d4ed8','#dc2626','#16a34a','#7c3aed','#ea580c'];
+const COL=['#1a1a1a','#1d4ed8','#dc2626','#16a34a','#7c3aed','#ea580c','#ffffff','#facc15'];
 COL.forEach(c=>{const b=document.createElement('button');b.style.cssText=`width:34px;height:34px;border-radius:50%;background:${c};border:2px solid #fff6`;b.onclick=()=>{dr.color=c;ref()};$('#ec').append(b)});
-['marcador','rotulador','lapiz'].forEach(t=>{const b=document.createElement('button');b.className='btn';b.textContent=t=='lapiz'?'Lápiz':cap(t);b.onclick=()=>{dr.tool=t;ref()};$('#et').append(b)});
+['marcador','rotulador','lapiz','tiza','spray'].forEach(t=>{const b=document.createElement('button');b.className='btn';b.textContent=t=='lapiz'?'Lápiz':cap(t);b.onclick=()=>{dr.tool=t;ref()};$('#et').append(b)});
 $('#ef').onchange=e=>{dr.font=e.target.value;ref()};
 $('#es').oninput=e=>{dr.size=+e.target.value;ref()};
 $('#er').oninput=e=>{dr.tilt=+e.target.value;ref()};
+$('#ep').oninput=e=>{dr.p=+e.target.value;ref()};
 $('#em').onclick=()=>{dr.t=V.currentTime;ref()};
 function ref(){sty(O,dr,'Predicción');$('#em').textContent='Marcar momento aquí ('+dr.t.toFixed(1)+'s)'}
 function edit(){
  V.pause();editing=true;
  dr=Object.assign({x:50,y:50,size:12,font:'Caveat',color:'#1a1a1a',tool:'marcador',tilt:0,t:V.currentTime},cur.cfg||{});
- $('#ef').value=dr.font;$('#es').value=dr.size;$('#er').value=dr.tilt;
+ $('#ef').value=dr.font;$('#es').value=dr.size;$('#er').value=dr.tilt;$('#ep').value=dr.p||0;
  $('#ed').hidden=false;O.hidden=false;O.style.pointerEvents='auto';ref();layoutEd(true);
 }
 function layoutEd(on){const h=on?$('#ed').offsetHeight:0,t=$('#st').style;t.top=on?'calc(env(safe-area-inset-top) + 64px)':'';t.bottom=on?(h+72)+'px':'';$('#cb').style.bottom=on?(h+8)+'px':'';fit()}
