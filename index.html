@@ -105,7 +105,6 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 // 1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
 const FB={apiKey:"AIzaSyDyOVOWaXAi1obAWLS1YFwLkfahVB8CIm8",authDomain:"prediccionfuturista.firebaseapp.com",projectId:"prediccionfuturista",appId:"1:523923371013:web:662cc9276f0d187990186c"};
 
-
 const $=s=>document.querySelector(s);
 const show=id=>document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id==id));
 const cap=s=>s.trim().replace(/^./,c=>c.toUpperCase());
@@ -132,13 +131,13 @@ async function checkKey(k){
 }
 async function enter(k){
  $('#le').textContent='';
- try{const e=await checkKey(k);if(e){$('#le').textContent=e;localStorage.removeItem('key');return}}
- catch(x){if(localStorage.key!==k){$('#le').textContent='Sin conexión o Firebase sin configurar';return}}
- localStorage.key=k;openGallery();
+ try{const e=await checkKey(k);if(e){$('#le').textContent=e;localStorage.removeItem('pfk');return}}
+ catch(x){if(localStorage.pfk!==k){$('#le').textContent='Sin conexión o Firebase sin configurar';return}}
+ localStorage.pfk=k;openGallery();
 }
 $('#lb').onclick=()=>enter($('#lk').value.trim().toUpperCase());
-if(localStorage.key)enter(localStorage.key);
-function out(){localStorage.removeItem('key');auth&&auth.signOut();location.reload()}
+if(localStorage.pfk)enter(localStorage.pfk);
+function out(){localStorage.removeItem('pfk');auth&&auth.signOut();location.reload()}
 
 /* ---------- Admin ---------- */
 $('#la').onclick=()=>show('ad');
