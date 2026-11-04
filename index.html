@@ -2,6 +2,10 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Predicción Futurista</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<meta name="apple-mobile-web-app-title" content="Predicción">
+<meta name="theme-color" content="#0b0620">
 <!-- REGLAS DE FIRESTORE (pegar en Firebase > Firestore > Reglas):
 rules_version='2';service cloud.firestore{match /databases/{db}/documents{match /keys/{k}{
  allow get:if true;
@@ -50,8 +54,8 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 #vb .mid{gap:26px;padding:0 24px}
 #hb.f svg{stroke:#ff375f;fill:#ff375f}
 #ok{position:absolute;left:calc(100% + 10px);top:50%;margin-top:-6px;width:12px;height:12px;border-radius:50%;background:#30d158;box-shadow:0 0 8px #30d158}
-#kw{position:fixed;inset:0;z-index:10;background:#000a;display:flex;align-items:center;justify-content:center;padding:24px}
-#kw .card{background:#1c1c1e;border-radius:18px;padding:18px;display:grid;gap:12px;width:100%;max-width:380px}
+#kw,#mt{position:fixed;inset:0;z-index:10;background:#000a;display:flex;align-items:center;justify-content:center;padding:24px}
+#kw .card,#mt .card{background:#1c1c1e;border-radius:18px;padding:18px;display:grid;gap:12px;width:100%;max-width:380px}
 #kw label{display:grid;gap:6px;font-size:14px}
 #kw .r2{display:flex;gap:8px;justify-content:flex-end}
 #sh{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);background:#1c1c1e;border-radius:16px;z-index:9;overflow:hidden}
@@ -63,7 +67,8 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 </style></head><body>
 
 <div id="lg" class="scr on"><div class="cen">
-<h2 style="margin:0 0 8px">Predicción Futurista</h2>
+<h2 style="margin:0">Predicción Futurista</h2>
+<div style="margin:0 0 10px;opacity:.75;font-size:15px">Creación del mago Camilo</div>
 <input id="lk" placeholder="Tu clave" autocapitalize="characters" autocomplete="off">
 <button class="big" id="lb">Entrar</button>
 <div id="le" style="color:#ff453a"></div>
@@ -98,6 +103,11 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 <label>Palabra de cierre<input id="kb" autocapitalize="none"></label>
 <small id="kp" style="opacity:.6"></small>
 <div class="r2"><button class="btn" id="kx">Cancelar</button><button class="btn big" id="kg">Guardar</button></div></div></div>
+<div id="mt" hidden><div class="card"><b style="font-size:18px">Probar micrófono</b>
+<div id="mx" style="min-height:96px;background:#000;border-radius:12px;padding:12px;font-size:17px"></div>
+<div id="mr" style="color:#30d158;min-height:20px"></div>
+<small style="opacity:.6">Si no aparece nada, acerca el teléfono a tu boca y no tapes el micrófono (parte de abajo).</small>
+<div class="r2"><button class="btn big" id="mc">Cerrar</button></div></div></div>
 <div id="sh" hidden></div>
 <div id="ed" hidden>
 <select id="ef"><option>Caveat<option>Permanent Marker<option>Reenie Beanie<option>Kalam<option>Shadows Into Light</select>
@@ -224,7 +234,7 @@ async function openGallery(){
   if($('#gl').classList.contains('on'))c.innerHTML=cell(it,t.b,t.d);
  }
 }
-$('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Palabras clave',kwOpen],['Cerrar sesión',out]]);
+$('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Palabras clave',kwOpen],['Probar micrófono',micTest],['Cerrar sesión',out]]);
 $('#fi').onchange=async e=>{
  const fs=[...e.target.files],h=$('#gh h1');
  for(let i=0;i<fs.length;i++){
@@ -250,11 +260,11 @@ function fit(){
 addEventListener('resize',fit);V.onloadedmetadata=fit;
 function paint(){if(editing)return;const c=cur&&cur.cfg;O.hidden=!(c&&word&&V.currentTime>=c.t)}
 function loop(){paint();if(!V.paused)requestAnimationFrame(loop)}
-V.onplay=()=>{$('#pp').textContent='❚❚';loop()};
-V.onpause=()=>{$('#pp').textContent='▶'};
+V.onplay=()=>{V.muted=false;V.volume=1;stopListen();$('#pp').textContent='❚❚';loop()};
+V.onpause=()=>{$('#pp').textContent='▶';if(live&&!editing&&!want)listen()};
 V.onseeked=paint;
 V.ontimeupdate=()=>{$('#pf').style.width=(V.currentTime/V.duration*100||0)+'%'};
-const toggle=()=>V.paused?V.play():V.pause();
+const toggle=()=>{if(V.paused){V.play();stopListen()}else{V.pause();listen()}};
 $('#w').onclick=()=>{if(!editing)toggle()};
 $('#pp').onclick=toggle;
 $('#pt').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();V.currentTime=(e.clientX-r.left)/r.width*V.duration};
@@ -264,9 +274,9 @@ function openViewer(it,u){
  const d=new Date(it.date),vid=it.type=='v';
  $('#vt').innerHTML=`${cap(d.toLocaleDateString('es',{weekday:'long'}))}<small>${d.toLocaleTimeString('es',{hour:'numeric',minute:'2-digit'})}</small>`;
  V.hidden=!vid;$('#w').hidden=!vid;$('#im').hidden=vid;$('#cb').hidden=!vid;live=vid;
- if(vid){V.src=u;V.play().catch(()=>{});listen()}else $('#im').src=u;
+ if(vid){V.src=u;V.play().catch(()=>{})}else $('#im').src=u;
 }
-function back(){live=false;V.pause();V.removeAttribute('src');rec&&rec.stop();if(editing)closeEd();openGallery()}
+function back(){live=false;stopListen();V.pause();V.removeAttribute('src');if(editing)closeEd();openGallery()}
 $('#vbk').onclick=back;
 $('#b4').onclick=async()=>{if(confirm('¿Eliminar?')){await del(cur.id);back()}};
 $('#vmn').onclick=()=>{if(cur.type=='v')sheet([['Ajustar predicción',edit],['Escribir palabra',typed],['Palabras clave',kwOpen],['Borrar palabra',()=>{word='';O.hidden=true;$('#ok').hidden=true}]])};
@@ -275,9 +285,20 @@ function typed(){const s=prompt('Palabra');if(s)setWord(s)}
 
 /* ---------- Palabras clave ---------- */
 const KW=()=>({a:localStorage.kwa||'pensaste',b:localStorage.kwb||'cierto'});
-function rx(){
- const k=KW(),f=t=>t.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
- return new RegExp(f(k.a)+'\\s+(?:en\\s+)?(.+?)\\s+'+f(k.b),'gi');
+const nz=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]==b[j-1]?0:1));p=c}return p[n]}
+const like=(a,b)=>!!a&&!!b&&lev(a,b)<=(b.length>=7?2:b.length>=4?1:0);
+function parse(txt){
+ const k=KW(),A=k.a.split(/\s+/).map(nz).filter(Boolean),B=k.b.split(/\s+/).map(nz).filter(Boolean);
+ const raw=txt.trim().split(/\s+/),t=raw.map(nz);let res=null;
+ const at=(i,P)=>P.every((w,x)=>like(t[i+x],w));
+ for(let i=0;i<t.length;i++){
+  if(!at(i,A))continue;
+  for(let j=i+A.length+1;j<t.length&&j<=i+A.length+9;j++){
+   if(at(j,B)){let w=raw.slice(i+A.length,j);if(w.length>1&&nz(w[0])=='en')w=w.slice(1);res=w.join(' ');i=j+B.length-1;break}
+  }
+ }
+ return res;
 }
 function kwPrev(){$('#kp').textContent='Ejemplo: "'+$('#ka').value.trim()+' barco '+$('#kb').value.trim()+'"'}
 function kwOpen(){const k=KW();$('#ka').value=k.a;$('#kb').value=k.b;kwPrev();$('#kw').hidden=false}
@@ -286,17 +307,33 @@ $('#kx').onclick=()=>{$('#kw').hidden=true};
 $('#kg').onclick=()=>{const a=$('#ka').value.trim(),b=$('#kb').value.trim();if(a&&b){localStorage.kwa=a;localStorage.kwb=b}$('#kw').hidden=true};
 
 /* ---------- Voz: "pensaste ... cierto" ---------- */
+let want=false;
+function stopListen(){want=false;try{rec&&rec.stop()}catch(e){}}
 function listen(){
- const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return;
- rec&&rec.stop();rec=new R();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
+ const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R||want)return;
+ want=true;rec=new R();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=3;
  rec.onresult=e=>{
-  let s='';for(let i=0;i<e.results.length;i++)s+=e.results[i][0].transcript+' ';
-  const m=[...s.matchAll(rx())];
-  if(m.length)setWord(m[m.length-1][1]);
+  for(let a=0;a<3;a++){
+   let t='';for(let i=0;i<e.results.length;i++){const r=e.results[i];t+=(r[a]||r[0]).transcript+' '}
+   const w=parse(t);if(w){setWord(w);break}
+  }
  };
- rec.onend=()=>{if(live)try{rec.start()}catch(e){}};
+ rec.onend=()=>{if(live&&want&&V.paused)try{rec.start()}catch(e){}};
  try{rec.start()}catch(e){}
 }
+let trec;
+function micTest(){
+ const R=window.SpeechRecognition||window.webkitSpeechRecognition,k=KW();
+ $('#mt').hidden=false;$('#mr').textContent='';
+ $('#mx').textContent=R?'Escuchando… di "'+k.a+' barco '+k.b+'"':'Este navegador no tiene reconocimiento de voz. Abre la app en Safari.';
+ if(!R)return;
+ trec=new R();trec.lang='es-ES';trec.continuous=true;trec.interimResults=true;
+ trec.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript+' ';$('#mx').textContent=t;const w=parse(t);$('#mr').textContent=w?'✔ Detectado: '+w:''};
+ trec.onerror=e=>{$('#mr').style.color='#ff453a';$('#mr').textContent=e.error=='not-allowed'?'Permiso de micrófono denegado':'Error: '+e.error};
+ trec.onend=()=>{if(!$('#mt').hidden)try{trec.start()}catch(e){}};
+ try{trec.start()}catch(e){}
+}
+$('#mc').onclick=()=>{$('#mt').hidden=true;try{trec&&trec.abort()}catch(e){}};
 
 /* ---------- Editor de la pizarra ---------- */
 const COL=['#1a1a1a','#1d4ed8','#dc2626','#16a34a','#7c3aed','#ea580c','#ffffff','#facc15'];
