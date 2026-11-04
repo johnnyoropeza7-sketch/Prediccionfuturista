@@ -261,9 +261,10 @@ function edit(){
  V.pause();editing=true;
  dr=Object.assign({x:50,y:50,size:12,font:'Caveat',color:'#1a1a1a',tool:'marcador',tilt:0,t:V.currentTime},cur.cfg||{});
  $('#ef').value=dr.font;$('#es').value=dr.size;$('#er').value=dr.tilt;
- $('#ed').hidden=false;O.hidden=false;O.style.pointerEvents='auto';ref();
+ $('#ed').hidden=false;O.hidden=false;O.style.pointerEvents='auto';ref();layoutEd(true);
 }
-function closeEd(){editing=false;$('#ed').hidden=true;O.style.pointerEvents='none';O.hidden=true}
+function layoutEd(on){const h=on?$('#ed').offsetHeight:0,t=$('#st').style;t.top=on?'calc(env(safe-area-inset-top) + 64px)':'';t.bottom=on?(h+72)+'px':'';$('#cb').style.bottom=on?(h+8)+'px':'';fit()}
+function closeEd(){editing=false;$('#ed').hidden=true;O.style.pointerEvents='none';O.hidden=true;layoutEd(false)}
 $('#ex').onclick=closeEd;
 $('#eg').onclick=async()=>{cur.cfg={...dr};await put(cur);closeEd()};
 O.onpointerdown=e=>{if(!editing)return;e.preventDefault();O.setPointerCapture(e.pointerId);O.dataset.d=1};
