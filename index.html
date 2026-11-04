@@ -178,23 +178,50 @@ function sheet(opts){
 }
 
 /* ---------- Galería ---------- */
+function thumb(f,vid){
+ return new Promise(res=>{
+  const u=URL.createObjectURL(f),el=document.createElement(vid?'video':'img');let fin=0;
+  const end=v=>{if(fin)return;fin=1;URL.revokeObjectURL(u);res(v)};
+  const done=()=>{try{
+   const w=vid?el.videoWidth:el.naturalWidth,h=vid?el.videoHeight:el.naturalHeight,k=Math.min(1,320/Math.max(w,h)),c=document.createElement('canvas');
+   c.width=Math.max(1,w*k|0);c.height=Math.max(1,h*k|0);c.getContext('2d').drawImage(el,0,0,c.width,c.height);
+   const d=vid?el.duration:0;c.toBlob(b=>end(b?{b,d}:null),'image/jpeg',.7)}catch(x){end(null)}};
+  el.onerror=()=>end(null);setTimeout(()=>end(null),8000);
+  if(vid){el.muted=true;el.playsInline=true;el.preload='auto';el.onloadeddata=()=>{el.currentTime=Math.min(.1,(el.duration||1)/2)};el.onseeked=done}else el.onload=done;
+  el.src=u;
+ });
+}
+let urls=[];
 async function openGallery(){
- show('gl');
+ show('gl');urls.forEach(u=>URL.revokeObjectURL(u));urls=[];
  const items=(await all()).sort((a,b)=>a.date-b.date),g=$('#gr');g.innerHTML='';
+ const mk=b=>{const u=URL.createObjectURL(b);urls.push(u);return u};
+ const fmt=d=>{const s=Math.round(d||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+ const cell=(it,b,d)=>`<img src="${mk(b)}">`+(it.type=='v'?`<span>${fmt(d)}</span>`:'');
+ const pend=[];
  items.forEach(it=>{
-  const c=document.createElement('div'),u=URL.createObjectURL(it.blob);c.className='c';
-  if(it.type=='v'){
-   c.innerHTML=`<video src="${u}#t=0.1" muted playsinline preload="metadata"></video><span></span>`;
-   const v=c.firstChild;v.onloadedmetadata=()=>{const s=Math.round(v.duration);c.lastChild.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
-  }else c.innerHTML=`<img src="${u}">`;
-  c.onclick=()=>openViewer(it,u);g.append(c);
+  const c=document.createElement('div');c.className='c';
+  if(it.thumb)c.innerHTML=cell(it,it.thumb,it.dur);
+  else{if(it.type=='v')c.innerHTML=`<video src="${mk(it.blob)}#t=0.1" muted playsinline preload="metadata"></video>`;pend.push([it,c])}
+  c.onclick=()=>openViewer(it,mk(it.blob));
+  g.append(c);
  });
  g.scrollTop=g.scrollHeight;
+ for(const [it,c] of pend){
+  const t=await thumb(it.blob,it.type=='v');if(!t||!t.b)continue;
+  it.thumb=t.b;it.dur=t.d;await put(it);
+  if($('#gl').classList.contains('on'))c.innerHTML=cell(it,t.b,t.d);
+ }
 }
 $('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Cerrar sesión',out]]);
 $('#fi').onchange=async e=>{
- for(const f of e.target.files)await put({id:crypto.randomUUID(),blob:f,type:f.type.startsWith('video')?'v':'i',date:f.lastModified||Date.now(),cfg:null});
- e.target.value='';openGallery();
+ const fs=[...e.target.files],h=$('#gh h1');
+ for(let i=0;i<fs.length;i++){
+  const f=fs[i],v=f.type.startsWith('video');h.textContent='Importando '+(i+1)+'/'+fs.length;
+  const t=await thumb(f,v);
+  await put({id:crypto.randomUUID(),blob:f,type:v?'v':'i',date:f.lastModified||Date.now(),cfg:null,thumb:t&&t.b,dur:t&&t.d});
+ }
+ e.target.value='';h.textContent='Fototeca';openGallery();
 };
 
 /* ---------- Visor ---------- */
