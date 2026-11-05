@@ -7,10 +7,15 @@
 <meta name="apple-mobile-web-app-title" content="Predicción">
 <meta name="theme-color" content="#0b0620">
 <!-- REGLAS DE FIRESTORE (pegar en Firebase > Firestore > Reglas):
-rules_version='2';service cloud.firestore{match /databases/{db}/documents{match /keys/{k}{
+rules_version='2';service cloud.firestore{match /databases/{db}/documents{
+match /keys/{k}{
  allow get:if true;
  allow update:if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['device'])&&resource.data.device==null;
- allow read,write:if request.auth!=null;}}}
+ allow read,write:if request.auth!=null;}
+match /words/{k}{
+ allow get:if true;
+ allow create,update:if request.resource.data.keys().hasOnly(['w','n'])&&request.resource.data.w is string&&request.resource.data.w.size()<60;}
+}}
 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Kalam:wght@700&family=Permanent+Marker&family=Reenie+Beanie&family=Shadows+Into+Light&family=Indie+Flower&family=Patrick+Hand&family=Rock+Salt&family=Gloria+Hallelujah&family=Covered+By+Your+Grace&family=Nanum+Pen+Script&family=Homemade+Apple&family=Architects+Daughter&family=Just+Another+Hand&family=Zeyada&family=Handlee&family=Schoolbell&family=Gochi+Hand&family=Amatic+SC:wght@700&family=Cabin+Sketch:wght@700&family=Londrina+Sketch&family=Special+Elite&family=Dancing+Script:wght@700&family=Pacifico&family=Bangers&family=Satisfy&display=swap" rel="stylesheet">
 <style>
@@ -78,9 +83,16 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 #ecu{width:44px;height:34px;padding:0;border:0;background:none}
 #ed select{display:none}
 #ed input[type=range]{padding:0;border:0;background:none}
+.logo{width:96px;height:96px;border-radius:22%;object-fit:cover;display:block;margin:0 0 6px}
+#cp{display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;padding:24px}
+#cp.on{display:flex}
+#cp .logo{width:min(40vw,160px);height:min(40vw,160px);margin:0}
+#cp .f{width:100%;max-width:380px;display:grid;gap:12px}
+#cps{min-height:22px;font-size:15px}
 </style></head><body>
 
-<div id="lg" class="scr on"><div class="cen">
+<div id="lg" class="scr on"><div class="cen" style="padding-top:18vh">
+<img class="logo" alt="">
 <h2 style="margin:0">Predicción Futurista</h2>
 <div style="margin:0 0 10px;opacity:.75;font-size:15px">Creación del mago Camilo</div>
 <input id="lk" placeholder="Tu clave" autocapitalize="characters" autocomplete="off">
@@ -88,6 +100,9 @@ input,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333;ba
 <div id="le" style="color:#ff453a"></div>
 <button id="la" style="opacity:.35;font-size:13px">Admin</button>
 </div></div>
+
+<div id="cp" class="scr"><img class="logo" alt=""><h2 style="margin:0">Predicción Futurista</h2><div style="opacity:.75;font-size:15px">Creación del mago Camilo</div>
+<div class="f"><input id="cpi" placeholder="Palabra" autocomplete="off" autocapitalize="sentences"><button class="big" id="cpe">Enviar</button><button class="btn" id="cpb">Borrar</button><div id="cps"></div></div></div>
 
 <div id="ad" class="scr" style="overflow:auto"><div class="cen" style="padding-top:60px">
 <div id="alog" style="display:grid;gap:10px">
@@ -169,6 +184,52 @@ $('#b4').innerHTML=ic('M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13');
 $('#gs').innerHTML=ic('M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5');
 $('#hb').onclick=e=>e.currentTarget.classList.toggle('f');
 
+/* ---------- Logo, link del cómplice y modos ---------- */
+const LOGO=(document.querySelector('link[rel="apple-touch-icon"]')||{}).href||'';
+document.querySelectorAll('img.logo').forEach(i=>{i.src=LOGO;i.hidden=!LOGO});
+const cpLink=k=>location.origin+location.pathname+'#c='+encodeURIComponent(k);
+const cpKey=()=>location.hash.startsWith('#c=')?decodeURIComponent(location.hash.slice(3)).trim().toUpperCase():null;
+addEventListener('hashchange',()=>location.reload());
+async function copyCp(k){
+ if(!k){alert('Entra con una clave de usuario para ver su link de cómplice.');return}
+ const u=cpLink(k);
+ try{await navigator.clipboard.writeText(u);alert('Link de tu cómplice copiado:\n'+u)}
+ catch(e){prompt('Copia el link de tu cómplice',u)}
+}
+const MODE=()=>localStorage.mode||'audio';
+const modeLabel=()=>'Modo: '+(MODE()=='audio'?'audio':'cómplice');
+function modeToggle(){
+ localStorage.mode=MODE()=='audio'?'complice':'audio';
+ if(live){stopListen();cpStop();startInput()}
+}
+/* Modo cómplice: recibe la palabra desde la página del cómplice */
+let cpUn=null;
+function cpStop(){if(cpUn){cpUn();cpUn=null}}
+function cpStart(){
+ cpStop();const k=localStorage.pfk;if(!db||!k||MODE()!='complice')return;
+ let first=true;
+ cpUn=db.collection('words').doc(k).onSnapshot(s=>{
+  if(first){first=false;return}
+  const d=s.data();if(!d)return;
+  if(d.w)setWord(d.w);else if(!editing){word='';O.hidden=true;$('#ok').hidden=true}
+ },()=>{});
+}
+function startInput(){if(MODE()=='complice')cpStart();else if(MIC()=='on')listen()}
+/* Pantalla del cómplice */
+async function cpInit(k){
+ show('cp');const st=$('#cps');
+ const bad=m=>{st.style.color='#ff453a';st.textContent=m;$('#cpe').disabled=$('#cpb').disabled=$('#cpi').disabled=true};
+ if(!k||!db)return bad('Link no válido');
+ try{const s=await db.collection('keys').doc(k).get();if(!s.exists||s.data().revoked)return bad('Link no válido')}catch(e){return bad('Sin conexión')}
+ const send=async w=>{
+  try{await db.collection('words').doc(k).set({w:w,n:Date.now()});st.style.color='#30d158';st.textContent=w?'Enviado ✓':'Borrado ✓';if(w)$('#cpi').value=''}
+  catch(e){st.style.color='#ff453a';st.textContent='No se pudo enviar'}
+ };
+ $('#cpe').onclick=()=>{const w=cap($('#cpi').value);if(w)send(w)};
+ $('#cpb').onclick=()=>send('');
+ $('#cpi').onkeydown=e=>{if(e.key=='Enter')$('#cpe').click()};
+}
+
 /* ---------- Claves (Firebase) ---------- */
 async function checkKey(k){
  const ref=db.collection('keys').doc(k);
@@ -186,7 +247,7 @@ async function enter(k){
  localStorage.pfk=k;openGallery();
 }
 $('#lb').onclick=()=>enter($('#lk').value.trim().toUpperCase());
-if(localStorage.pfk)enter(localStorage.pfk);
+if(cpKey()!==null)cpInit(cpKey());else if(localStorage.pfk)enter(localStorage.pfk);
 function out(){localStorage.removeItem('pfk');auth&&auth.signOut();location.reload()}
 
 /* ---------- Admin ---------- */
@@ -204,6 +265,7 @@ function watch(){
    r.innerHTML=`<b>${d.id}</b><small>${x.name||''} · ${x.revoked?'revocada':x.device?'en uso':'libre'}</small>`;
    const b=(t,f)=>{const e=document.createElement('button');e.className='btn';e.textContent=t;e.onclick=f;r.append(e)};
    b(x.revoked?'Activar':'Revocar',()=>d.ref.update({revoked:!x.revoked}));
+   b('Link cómplice',()=>copyCp(d.id));
    b('Liberar',()=>d.ref.update({device:null}));
    b('Borrar',()=>confirm('¿Borrar esta clave?')&&d.ref.delete());
    $('#kl').append(r);
@@ -263,7 +325,7 @@ async function openGallery(){
   if($('#gl').classList.contains('on'))c.innerHTML=cell(it,t.b,t.d);
  }
 }
-$('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Palabras clave',kwOpen],['Probar micrófono',micTest],[micLabel(),micToggle],['Cerrar sesión',out]]);
+$('#gm').onclick=()=>sheet([['Agregar fotos y videos',()=>$('#fi').click()],['Palabras clave',kwOpen],['Mi link de cómplice',()=>copyCp(localStorage.pfk)],[modeLabel(),modeToggle],['Probar micrófono',micTest],[micLabel(),micToggle],['Cerrar sesión',out]]);
 $('#fi').onchange=async e=>{
  const fs=[...e.target.files],h=$('#gh h1');
  for(let i=0;i<fs.length;i++){
@@ -303,12 +365,12 @@ function openViewer(it,u){
  const d=new Date(it.date),vid=it.type=='v';
  $('#vt').innerHTML=`${cap(d.toLocaleDateString('es',{weekday:'long'}))}<small>${d.toLocaleTimeString('es',{hour:'numeric',minute:'2-digit'})}</small>`;
  V.hidden=!vid;$('#w').hidden=!vid;$('#im').hidden=vid;$('#cb').hidden=!vid;live=vid;
- if(vid){V.src=u;V.play().catch(()=>{});if(MIC()=='on')listen()}else $('#im').src=u;
+ if(vid){V.src=u;V.play().catch(()=>{});startInput()}else $('#im').src=u;
 }
-function back(){live=false;stopListen();V.pause();V.removeAttribute('src');if(editing)closeEd();openGallery()}
+function back(){live=false;stopListen();cpStop();V.pause();V.removeAttribute('src');if(editing)closeEd();openGallery()}
 $('#vbk').onclick=back;
 $('#b4').onclick=async()=>{if(confirm('¿Eliminar?')){await del(cur.id);back()}};
-$('#vmn').onclick=()=>{if(cur.type=='v')sheet([['Ajustar predicción',edit],['Escribir palabra',typed],['Palabras clave',kwOpen],[micLabel(),micToggle],['Borrar palabra',()=>{word='';O.hidden=true;$('#ok').hidden=true}]])};
+$('#vmn').onclick=()=>{if(cur.type=='v')sheet([['Ajustar predicción',edit],['Escribir palabra',typed],['Palabras clave',kwOpen],[modeLabel(),modeToggle],['Mi link de cómplice',()=>copyCp(localStorage.pfk)],[micLabel(),micToggle],['Borrar palabra',()=>{word='';O.hidden=true;$('#ok').hidden=true}]])};
 function setWord(s){if(editing)return;word=cap(s);if(cur.cfg){sty(O,cur.cfg,word);$('#ok').hidden=false}}
 function typed(){const s=prompt('Palabra');if(s)setWord(s)}
 
@@ -340,7 +402,7 @@ const MIC=()=>localStorage.mic||'on';
 let want=false,from=0,lastLen=0,lastFin=true;
 function stopListen(){want=false;try{rec&&rec.stop()}catch(e){}}
 function listen(){
- const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R||want)return;
+ const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R||want||MODE()=='complice')return;
  want=true;from=0;lastLen=0;lastFin=true;rec=new R();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=3;
  rec.onresult=e=>{
   lastLen=e.results.length;lastFin=e.results[lastLen-1].isFinal;
